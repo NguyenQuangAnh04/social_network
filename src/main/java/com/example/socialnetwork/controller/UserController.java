@@ -8,17 +8,12 @@ import com.example.socialnetwork.repository.TokenRepository;
 import com.example.socialnetwork.repository.UserRepository;
 import com.example.socialnetwork.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -28,6 +23,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
+@Slf4j
 public class UserController {
     @Autowired
     private UserService userService;
@@ -87,7 +83,7 @@ public class UserController {
                 return ResponseEntity.ok(response);
             }
             LocalDateTime thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
-            System.out.println(thirtyDaysAgo);
+            log.info(thirtyDaysAgo.toString());
             if(token.getLastUsedAt().isBefore(thirtyDaysAgo)){
                 tokenRepository.delete(token);
                 throw new RuntimeException("Tài khoản không họạt động quá 30 ngày. Vui lòng đăng nhập lại");

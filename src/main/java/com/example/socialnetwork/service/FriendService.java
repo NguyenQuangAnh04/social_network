@@ -43,7 +43,7 @@ public class FriendService implements IFriendService {
     }
     @Override
     public void acceptFriend(Long friendShipId) {
-        Friendship friendship = friendShipRepository.findById(friendShipId).orElseThrow();
+        Friendship friendship = friendShipRepository.findByUsers(currentUserService.getUserCurrent().getId(), friendShipId);
         friendship.setStatus(FriendshipStatus.ACCEPTED);
         friendShipRepository.save(friendship);
         Message message = new Message();

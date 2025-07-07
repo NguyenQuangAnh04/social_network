@@ -87,6 +87,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
                 String gitHubName = oAuth2User.getAttribute("login");
                 newUser.setFullName(gitHubName);
                 newUser.setUsername(gitHubName);
+                newUser.setEmail(email);
                 newUser.setGithubId(githubId);
             }
             newUser.setPassword(UUID.randomUUID().toString());
