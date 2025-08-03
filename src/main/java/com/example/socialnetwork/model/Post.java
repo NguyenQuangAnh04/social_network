@@ -1,5 +1,6 @@
 package com.example.socialnetwork.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -32,12 +33,13 @@ public class Post {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
+    @JsonIgnore()
     private User author;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<Comment> comments = new HashSet<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.REMOVE)
     private Set<Like> likes = new HashSet<>();
 
 

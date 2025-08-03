@@ -4,15 +4,15 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-@Entity
-@Table(name = "messages")
 @Data
+@Table(name = "messages")
+@Entity
 public class Message {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id")
@@ -21,9 +21,10 @@ public class Message {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id")
     private User receiver;
-
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
     private LocalDateTime timestamp;
+//    @OneToMany(mappedBy = "message")
+//    List<MessageDetails> messageDetails;
 }

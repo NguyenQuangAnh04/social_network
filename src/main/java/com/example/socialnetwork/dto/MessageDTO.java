@@ -12,4 +12,5 @@ public class MessageDTO {
     private Long userId1;
     private Long userId2;
     private String timeStamp;
+    private Long senderId;
 }

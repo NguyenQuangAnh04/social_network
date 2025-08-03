@@ -1,13 +1,13 @@
 package com.example.socialnetwork.service;
 
 import com.example.socialnetwork.component.JwtUtils;
-import com.example.socialnetwork.dto.PostDTO;
 import com.example.socialnetwork.dto.UserDTO;
 import com.example.socialnetwork.enums.OTPPurpose;
 import com.example.socialnetwork.enums.Role;
+import com.example.socialnetwork.model.Follow;
 import com.example.socialnetwork.model.User;
+import com.example.socialnetwork.repository.FollowRepository;
 import com.example.socialnetwork.repository.UserRepository;
-import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Service
 public class UserService implements IUserService {
@@ -32,7 +31,8 @@ public class UserService implements IUserService {
     @Autowired
     private CurrentUserService currentUserService;
     private final Map<String, UserDTO> account = new ConcurrentHashMap<>();
-
+    @Autowired
+    private FollowRepository followRepository;
     @Override
     public String login(String username, String password) {
         Optional<User> user = Optional.ofNullable(userRepository.findByUsername(username).orElseThrow(
@@ -50,38 +50,38 @@ public class UserService implements IUserService {
             throw new RuntimeException("Thông tin đăng ký đã hết hạn hoặc không tồn tại");
         if (!OTPService.verifyOTP(email, otp))
             throw new RuntimeException("OTP không chính xác hoặc đã hết hạn");
-        Optional<User> existUserName = userRepository.findByUsername(userRegisterDTO.getUsername());
-        if (existUserName.isPresent()) throw new RuntimeException("Tài khoản đã tồn tại");
+
         Optional<User> existEmail = userRepository.findByEmail(email);
         if (existEmail.isPresent()) throw new RuntimeException("Email đã tồn tại");
         User user = new User();
         user.setUsername(userRegisterDTO.getUsername());
         user.setPassword(bCryptPasswordEncoder.encode(userRegisterDTO.getPassword()));
-        user.setFirstName(userRegisterDTO.getFirstName());
         user.setRole(Role.USER);
-        user.setFullName(userRegisterDTO.getFirstName() + " " + userRegisterDTO.getEmail());
         user.setEmail(userRegisterDTO.getEmail());
-        user.setLastName(userRegisterDTO.getLastName());
+        user.setFullName(userRegisterDTO.getFullName());
         user.setCreatedAt(LocalDateTime.now());
         if (userRegisterDTO.getProfilePicture() != null) {
             user.setProfilePicture(userRegisterDTO.getProfilePicture());
         }
         return userRepository.save(user);
+
     }
+
     @Override
     public void requestRegister(UserDTO userDTO) {
         if (userRepository.findByUsername(userDTO.getUsername()).isPresent())
             throw new RuntimeException("Tài khoản đã tồn tại");
         if (userRepository.findByEmail(userDTO.getEmail()).isPresent())
             throw new RuntimeException("Email đã tồn tại");
-
         if (userDTO.getPassword().length() < 8)
             throw new RuntimeException("Mật khẩu phải có 8 kí tự!");
         if (!userDTO.getPassword().equals(userDTO.getConfirmPassword()))
             throw new RuntimeException("Mật khẩu không khớp");
+
         OTPService.sendOTP(userDTO.getEmail(), OTPPurpose.FOR_REGISTER);
         account.put(userDTO.getEmail(), userDTO);
     }
+
     @Override
     public UserDTO getByUser() {
         User user = userRepository.findById(currentUserService.getUserCurrent().getId())
@@ -89,27 +89,21 @@ public class UserService implements IUserService {
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());
         userDTO.setFullName(user.getFullName());
+        userDTO.setUsername(user.getUsername());
         return userDTO;
     }
 
+
     @Override
-    public UserDTO findByName(Long id) {
-        Optional<User> user = userRepository.findById(id);
-        if (!user.isPresent()) throw new EntityNotFoundException("Không tìm thấy người dùng");
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(user.get().getId());
-        userDTO.setFullName(user.get().getFullName());
-        userDTO.setProfilePicture(user.get().getProfilePicture());
-        List<PostDTO> postDTOS = user.get().getPosts().stream().map(item -> {
-            PostDTO postDTO = new PostDTO();
-            postDTO.setFullName(item.getAuthor().getFirstName() + " " + item.getAuthor().getLastName());
-            postDTO.setImage_url(item.getImageUrl());
-            postDTO.setContent(item.getContent());
-            postDTO.setTimeAgo(getTimeAgo(item.getCreatedAt()));
-            return postDTO;
-        }).collect(Collectors.toList());
-        userDTO.setPostDTOS(postDTOS);
-        return userDTO;
+    public List<UserDTO> findByName(String fullname) {
+        List<User> user = userRepository.findByName(fullname);
+        return user.stream().filter(item -> item.getFullName() != null).map(item -> {
+            UserDTO userDTO = new UserDTO();
+            userDTO.setId(item.getId());
+            userDTO.setFullName(item.getFullName());
+            userDTO.setUsername(item.getUsername());
+            return userDTO;
+        }).toList();
     }
 
     private String getTimeAgo(LocalDateTime localDateTime) {
@@ -122,5 +116,25 @@ public class UserService implements IUserService {
         if (seconds < 2592000) return seconds / 86400 + " ngày trước";
         if (seconds < 31104000) return seconds / 2592000 + " tháng trước";
         return seconds / 31104000 + " năm trước";
+    }
+
+    @Override
+    public List<UserDTO> findAll() {
+        User currentUser = currentUserService.getUserCurrent();
+        Long currentUserId = currentUser.getId();
+        return userRepository.findAll().stream().filter(item -> item.getFullName() != null
+                && item.getId() != currentUserId).map(user -> {
+            UserDTO userDTO = new UserDTO();
+            userDTO.setId(user.getId());
+            userDTO.setFullName(user.getFullName());
+            Optional<Follow> checkBetWeenUser = followRepository
+                    .findByFollowerIdAndFollowingId(currentUserId, user.getId() );
+            if(checkBetWeenUser.isPresent()){
+                userDTO.setIsFollowing(true);
+            }
+            userDTO.setUsername(user.getUsername());
+
+            return userDTO;
+        }).toList();
     }
 }

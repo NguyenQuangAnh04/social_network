@@ -10,6 +10,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -35,17 +36,22 @@ public class WebSecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth2/**", "/login", "/login/**", "/error", "/api/login", "/api/register", "/api/refresh-token").permitAll()                        .requestMatchers(HttpMethod.GET, "/api/post", "/api/post/**").permitAll()
+                        .requestMatchers("/oauth2/**", "/login", "/login/**", "/error", "/api/login","/api/logout", "/api/verifyOTP", "/api/register", "/api/refresh-token", "/api/check-auth", "/api/searchByName*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/logout").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/like", "/api/like/*").hasAnyRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/like/comment/*").hasAnyRole("USER")
                         .requestMatchers("/ws/info/*", "/ws/sockjs-node/**", "/ws/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/post/*").hasRole("USER")
-                        .requestMatchers(HttpMethod.GET, "/api/*/*").hasRole("USER")
-                        .requestMatchers(HttpMethod.GET, "/api/*").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/*/*", "/api/post/*","/api/post/**", "/api/post").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/*", "/api").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/comment/*", "/api/like/*", "/api/upload/**", "/api/friend/**", "/api/message/*").hasRole("USER")
-                        .requestMatchers(HttpMethod.GET, "/api/friend/**", "/api/friend/findByName*",
+                        .requestMatchers(HttpMethod.GET, 
                                 "/api/message/*", "/api/message/**").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/comment/*").hasAnyRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/follow/*/*").hasAnyRole("USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/follow/*/*").hasAnyRole("USER")
                         .requestMatchers(HttpMethod.DELETE, "/api/like/**", "/api/post/delete/*").hasRole("USER")
                         .requestMatchers("/oauth2/success").permitAll()
-
                         .requestMatchers("/chat/send").hasRole("USER")
                         .anyRequest().authenticated()
                 )
@@ -53,6 +59,7 @@ public class WebSecurityConfig {
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                         .failureUrl("/login?error")
                 )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -80,12 +87,14 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+//        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowedOrigins(List.of("http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
-        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", configuration);
-        return urlBasedCorsConfigurationSource;
+        configuration.setExposedHeaders(List.of("Set-Cookie"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

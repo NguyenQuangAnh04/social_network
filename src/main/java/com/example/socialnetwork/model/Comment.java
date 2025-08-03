@@ -4,10 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,9 +36,7 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     @JsonIgnore
-
     private Post post;
-
     @ManyToOne
     @JoinColumn(name = "parent_id")
     @JsonIgnore
@@ -49,4 +44,8 @@ public class Comment {
     @OneToMany(mappedBy = "parent")
     @JsonIgnore
     private List<Comment> replies;
+
+    @OneToMany(mappedBy = "comment", cascade = {CascadeType.REMOVE}, orphanRemoval = true)
+    @JsonIgnore
+    private List<Like> likes;
 }

@@ -19,12 +19,9 @@ public class UserDTO {
     @NotBlank(message = "Không được bỏ trống confirmpassword")
     private String confirmPassword;
     private String profilePicture;
-    @NotBlank(message = "Vui lòng nhập tên")
-    private String firstName;
-    @NotBlank(message = "Vui lòng nhập tên")
-    private String lastName;
-    private String bio;
     private List<PostDTO> postDTOS;
     private String otp;
     private List<LikeDTO> likeDTOList;
+    private Boolean isFollowing;
+
 }

@@ -3,6 +3,7 @@ package com.example.socialnetwork.config;
 import com.example.socialnetwork.component.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -27,24 +28,39 @@ public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
     private static final List<String> EXCLUDE_URLS = List.of(
-            "/api/login", "/api/register", "/api/post", "/ws-chat", "/ws-chat/**", "/ws-chat/info/*", "/api/refresh-token");
+            "/api/login", "/api/register", "/ws-chat", "/api/logout", "/ws-chat/**");
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
-            String path = request.getServletPath();
-            if (request.getServletPath().startsWith("/login") || request.getServletPath().startsWith("/.well-known")||request.getServletPath().startsWith("/ws") || EXCLUDE_URLS.contains(request.getServletPath())) {
+//            if (request.getServletPath().startsWith("/login") || request.getServletPath().startsWith("/.well-known")||request.getServletPath().startsWith("/ws") || EXCLUDE_URLS.contains(request.getServletPath())) {
+//                filterChain.doFilter(request, response);
+//                return;
+//            }
+            if (request.getServletPath().startsWith("/api/refresh-token")) {
                 filterChain.doFilter(request, response);
                 return;
             }
+
             String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            String token = null;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }else{
+                if(request.getCookies() != null){
+                    for(Cookie cookie : request.getCookies()){
+                        if(cookie.getName().equals("access_token")){
+                            token = cookie.getValue();
+                        }
+                    }
+                }
+            }
+            if (token == null) {
+                filterChain.doFilter(request, response);
                 return;
             }
-            String token = authHeader.substring(7);
             String username = jwtUtils.extractUserName(token);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails user = userDetailsService.loadUserByUsername(username);
@@ -58,7 +74,8 @@ public class JwtFilter extends OncePerRequestFilter {
             }
             filterChain.doFilter(request, response);
         } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+//            log.error("Error in JWT filter: {}", e.getMessage(), e);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
 
     }

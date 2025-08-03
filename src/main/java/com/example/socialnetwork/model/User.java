@@ -33,16 +33,9 @@ public class User implements UserDetails {
     @Size(max = 255)
     private String password;
 
-    @Size(max = 100)
-    private String firstName;
-
-    @Size(max = 100)
-    private String lastName;
     private String fullName;
     private String profilePicture;
 
-    @Size(max = 500)
-    private String bio;
     @Column(name = "facebook_id", unique = true)
     private Long facebookId;
 
@@ -58,6 +51,7 @@ public class User implements UserDetails {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore()
     private List<Post> posts = new ArrayList<>();
     @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -66,15 +60,18 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Like> likes = new HashSet<>();
 
-    // Followers and Following relationships
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "user_followers",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "follower_id"))
-    private Set<User> followers = new HashSet<>();
+    @OneToMany(mappedBy = "follower", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Follow> following;
 
-    @ManyToMany(mappedBy = "followers", fetch = FetchType.LAZY)
-    private Set<User> following = new HashSet<>();
+    @OneToMany(mappedBy = "following", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Follow> followers;
+    @OneToMany(mappedBy = "sender")
+    private List<Message> sentMessages;
+
+    // Quan hệ 1 user nhận nhiều message
+    @OneToMany(mappedBy = "receiver")
+    private List<Message> receivedMessages;
+
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
     @Override

@@ -15,12 +15,12 @@ public class UploadController {
     private CloudinaryService cloudinaryService;
 
     @PostMapping("/post/{postId}")
-    public ResponseEntity<String> postImage(@RequestParam("file")MultipartFile file, @PathVariable Long postId) throws IOException {
+    public ResponseEntity<String> postImage(@RequestParam("file") MultipartFile file, @PathVariable Long postId) throws IOException {
         return ResponseEntity.ok(cloudinaryService.uploadFilePost(file, postId));
     }
 
-    @PostMapping("/comment/{postId}")
-    public ResponseEntity<String> commentImage(@RequestParam("file")MultipartFile file, Long postId) throws IOException {
-        return ResponseEntity.ok(cloudinaryService.uploadFileComment(file, postId));
-    }
+//    @PostMapping("/comment/{postId}")
+//    public ResponseEntity<String> commentImage(@RequestParam("file")MultipartFile file, Long postId) throws IOException {
+//        return ResponseEntity.ok(cloudinaryService.uploadFileComment(file, postId));
+//    }
 }

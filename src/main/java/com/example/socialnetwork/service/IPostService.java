@@ -1,6 +1,7 @@
 package com.example.socialnetwork.service;
 
 import com.example.socialnetwork.dto.PostDTO;
+import com.example.socialnetwork.dto.UserProfileResponse;
 import com.example.socialnetwork.model.Post;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,9 +13,9 @@ public interface IPostService {
 
     List<PostDTO> findAll();
 
-    List<PostDTO> getAllPostByUser();
+    UserProfileResponse getAllPostByUser();
 
-    List<PostDTO> findAllPostByUser(Long userId);
-
+    UserProfileResponse findAllPostByUser(String username);
+    PostDTO editPost(PostDTO postDTO);
     void deletePostById(Long postId);
 }

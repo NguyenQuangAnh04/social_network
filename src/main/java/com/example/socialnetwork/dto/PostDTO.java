@@ -14,9 +14,9 @@ public class PostDTO {
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
     private String fullName;
-    private Long friendId ;
-    private List<CommentDTO> commentDTOList;
+//    private List<CommentDTO> commentDTOList;
     private String timeAgo;
     private List<LikeDTO> likeDTOList;
     private Long totalLike;
+    private Long totalComment;
 }

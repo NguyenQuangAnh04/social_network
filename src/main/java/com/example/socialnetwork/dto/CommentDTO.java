@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.cglib.core.Local;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class CommentDTO {
@@ -16,4 +17,7 @@ public class CommentDTO {
     private String fullName;
     private Long postId;
     private Long parentComment;
+    private Long totalComment;
+    private List<CommentDTO> children;
+    private Long totalLike;
 }

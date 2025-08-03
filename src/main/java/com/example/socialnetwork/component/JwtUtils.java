@@ -56,6 +56,14 @@ public class JwtUtils {
                 .getBody();
     }
 
+    public Boolean validateToken(String token){
+        try{
+            extractAllToken(token);
+            return !isExpiration(token).before(new Date());
+        }catch (Exception e) {
+            return false;
+        }
+    }
     private <T> T extractToken(String token, Function<Claims, T> claimsFunction) {
         final Claims claims = extractAllToken(token);
         return claimsFunction.apply(claims);

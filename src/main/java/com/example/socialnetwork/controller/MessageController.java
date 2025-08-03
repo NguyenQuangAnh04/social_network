@@ -25,7 +25,7 @@ public class MessageController {
         return ResponseEntity.ok(messageService.historyMessage(userId));
     }
 
-    @GetMapping("/conversations")
+        @GetMapping("/conversations")
     public ResponseEntity<List<MessageDTO>> getConversations() {
         return ResponseEntity.ok(messageService.getAllChatByUser());
     }

@@ -1,6 +1,7 @@
 package com.example.socialnetwork.controller;
 
 import com.example.socialnetwork.dto.PostDTO;
+import com.example.socialnetwork.dto.UserProfileResponse;
 import com.example.socialnetwork.model.Post;
 import com.example.socialnetwork.service.PostService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +29,13 @@ public class PostController {
     }
 
     @GetMapping("/user")
-    public ResponseEntity<List<PostDTO>> getAllPostByUser() {
+    public ResponseEntity<UserProfileResponse> getAllPostByUser() {
         return ResponseEntity.ok(postService.getAllPostByUser());
     }
 
-    @GetMapping("/user/{id}")
-    public ResponseEntity<List<PostDTO>> findAllPostByUser(@PathVariable(name = "id") Long id) {
-        return ResponseEntity.ok(postService.findAllPostByUser(id));
+    @GetMapping("/user/search")
+    public ResponseEntity<UserProfileResponse> findAllPostByUser(@RequestParam(name = "name") String name) {
+        return ResponseEntity.ok(postService.findAllPostByUser(name));
     }
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deletePostById(@PathVariable(name = "id") Long id) {
@@ -42,6 +43,8 @@ public class PostController {
         log.info("Xóa bài viết {} thành công", id);
         return ResponseEntity.ok("Xóa bài viết thành công");
     }
-
-
+    @PostMapping("/edit")
+    public ResponseEntity<PostDTO> edit(@RequestBody PostDTO postDTO){
+        return ResponseEntity.ok(postService.editPost(postDTO));
+    }
 }
