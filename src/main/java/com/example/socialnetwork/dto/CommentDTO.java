@@ -16,6 +16,7 @@ public class CommentDTO {
     private Long userId;
     private String fullName;
     private Long postId;
+    private List<Long> users;
     private Long parentComment;
     private Long totalComment;
     private List<CommentDTO> children;

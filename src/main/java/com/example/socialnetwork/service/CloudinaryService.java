@@ -25,12 +25,8 @@ public class CloudinaryService {
     @Autowired
     private CurrentUserService currentUserService;
     public String uploadFilePost(MultipartFile file, Long postId) throws IOException {
-        Post post = postRepository.findById(postId).orElseThrow(()
-                -> new RuntimeException("Không tìm thấy id post"));
         Map<?,?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                 ObjectUtils.asMap("resource_type", "auto"));
-        post.setImageUrl(uploadResult.get("secure_url").toString());
-        postRepository.save(post);
         return uploadResult.get("secure_url").toString();
     }
     public String uploadFileComment(MultipartFile file, Long postId) throws IOException {

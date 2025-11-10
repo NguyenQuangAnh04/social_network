@@ -19,13 +19,8 @@ public class Token {
     @Id
     private Long id;
 
-    @Column(name = "token")
-    private String token;
-
     private LocalDateTime refreshTokenIssuedAt;
 
-    @Column(name = "token_created_at")
-    private LocalDateTime tokenCreatedAt;
 
     @Column(name = "refresh_token_created_at", nullable = false)
     private LocalDateTime refreshTokenCreatedAt;

@@ -9,6 +9,7 @@ import com.example.socialnetwork.repository.CommentRepository;
 import com.example.socialnetwork.repository.LikeRepository;
 import com.example.socialnetwork.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,17 +22,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class LikeService implements ILikeService {
-    @Autowired
-    private PostRepository postRepository;
-    @Autowired
-    private LikeRepository likeRepository;
-
-    @Autowired
-    private CurrentUserService currentUserService;
-    @Autowired
-    private CommentRepository commentRepository;
-
+    private final PostRepository postRepository;
+    private final LikeRepository likeRepository;
+    private final CurrentUserService currentUserService;
+    private final CommentRepository commentRepository;
     @Override
     public Like likePost(Long postId) {
         Post post = postRepository.findById(postId)

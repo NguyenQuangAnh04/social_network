@@ -1,14 +1,15 @@
 package com.example.socialnetwork.config;
 
 import com.example.socialnetwork.component.JwtUtils;
+import com.example.socialnetwork.service.TokenBlackListService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,38 +23,43 @@ import java.util.List;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
-    @Autowired
-    private JwtUtils jwtUtils;
-    @Autowired
-    private UserDetailsService userDetailsService;
+    private final JwtUtils jwtUtils;
+    private final UserDetailsService userDetailsService;
     private static final List<String> EXCLUDE_URLS = List.of(
-            "/api/login", "/api/register", "/ws-chat", "/api/logout", "/ws-chat/**");
+            "/api/login", "/api/register");
+    private final TokenBlackListService tokenBlackListService;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
-//            if (request.getServletPath().startsWith("/login") || request.getServletPath().startsWith("/.well-known")||request.getServletPath().startsWith("/ws") || EXCLUDE_URLS.contains(request.getServletPath())) {
-//                filterChain.doFilter(request, response);
-//                return;
-//            }
-            if (request.getServletPath().startsWith("/api/refresh-token")) {
+            // Bỏ qua các đường dẫn public
+            if (request.getServletPath().startsWith("/login") || request.getServletPath().startsWith("/api/refresh-token")
+                    || request.getServletPath().startsWith("/.well-known")
+                    || EXCLUDE_URLS.contains(request.getServletPath())
+                    ) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            String authHeader = request.getHeader("Authorization");
             String token = null;
+
+            String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 token = authHeader.substring(7);
-            }else{
-                if(request.getCookies() != null){
-                    for(Cookie cookie : request.getCookies()){
-                        if(cookie.getName().equals("access_token")){
-                            token = cookie.getValue();
-                        }
+            }
+            if (tokenBlackListService.isTokenBlackListed(token)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+            if (token == null && request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        token = cookie.getValue();
+                        break;
                     }
                 }
             }
@@ -61,22 +67,24 @@ public class JwtFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
+
             String username = jwtUtils.extractUserName(token);
+
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails user = userDetailsService.loadUserByUsername(username);
                 if (jwtUtils.validate(token, user)) {
-                    UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(user,
-                            null,
-                            user.getAuthorities());
-                    usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            user, null, user.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+
             filterChain.doFilter(request, response);
+
         } catch (Exception e) {
-//            log.error("Error in JWT filter: {}", e.getMessage(), e);
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
-
     }
+
 }

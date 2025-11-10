@@ -7,8 +7,12 @@ import com.example.socialnetwork.model.User;
 import java.util.List;
 
 public interface IMessageService {
-    Message sendMessage(MessageDTO messageDTO);
-    List<MessageDTO> historyMessage(Long userReceiver);
+    MessageDTO sendMessage(MessageDTO messageDTO);
+    List<MessageDTO> historyMessage(String room);
 
-    List<MessageDTO> getAllChatByUser();
+    List<MessageDTO> getAllConversations();
+
+    void markMessagesAsRead(Long userId, String roomName);
+
+    int countMessageNotRead(Long userId);
 }

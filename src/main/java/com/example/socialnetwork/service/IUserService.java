@@ -1,5 +1,6 @@
 package com.example.socialnetwork.service;
 
+import com.example.socialnetwork.dto.FriendDTO;
 import com.example.socialnetwork.dto.UserDTO;
 import com.example.socialnetwork.model.User;
 import jakarta.mail.MessagingException;
@@ -12,8 +13,8 @@ public interface IUserService {
     void requestRegister(UserDTO userDTO) throws MessagingException;
 
     UserDTO getByUser();
-
+    UserDTO findByUsername(String username);
     List<UserDTO> findByName(String fullname);
-
     List<UserDTO> findAll();
+
 }

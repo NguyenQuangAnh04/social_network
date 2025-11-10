@@ -29,4 +29,5 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     int countParentId(@Param("parentId") Long parentId);
     @Query("SELECT COUNT(c) FROM Comment c where  c.post.id = :postId")
     int totalCommentByPost(@Param("postId") Long postId);
+
 }

@@ -1,6 +1,8 @@
 package com.example.socialnetwork.service;
 
 import com.example.socialnetwork.component.JwtUtils;
+import com.example.socialnetwork.config.RedisConfig;
+import com.example.socialnetwork.dto.FriendDTO;
 import com.example.socialnetwork.dto.UserDTO;
 import com.example.socialnetwork.enums.OTPPurpose;
 import com.example.socialnetwork.enums.Role;
@@ -9,7 +11,9 @@ import com.example.socialnetwork.model.User;
 import com.example.socialnetwork.repository.FollowRepository;
 import com.example.socialnetwork.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
+@RequiredArgsConstructor
 public class UserService implements IUserService {
     @Autowired
     private UserRepository userRepository;
@@ -33,6 +39,8 @@ public class UserService implements IUserService {
     private final Map<String, UserDTO> account = new ConcurrentHashMap<>();
     @Autowired
     private FollowRepository followRepository;
+    private final StringRedisTemplate stringRedisTemplate;
+
     @Override
     public String login(String username, String password) {
         Optional<User> user = Optional.ofNullable(userRepository.findByUsername(username).orElseThrow(
@@ -78,14 +86,35 @@ public class UserService implements IUserService {
         if (!userDTO.getPassword().equals(userDTO.getConfirmPassword()))
             throw new RuntimeException("Mật khẩu không khớp");
 
-        OTPService.sendOTP(userDTO.getEmail(), OTPPurpose.FOR_REGISTER);
-        account.put(userDTO.getEmail(), userDTO);
+//        OTPService.sendOTP(userDTO.getEmail(), OTPPurpose.FOR_REGISTER);
+//        account.put(userDTO.getEmail(), userDTO);
+        User user = new User();
+        user.setEmail(userDTO.getEmail());
+        user.setFullName(userDTO.getFullName());
+        user.setUsername(userDTO.getUsername());
+        user.setRole(Role.USER);
+
+        String hashPassword = bCryptPasswordEncoder.encode(userDTO.getPassword());
+        user.setPassword(hashPassword);
+        user.setCreatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     @Override
     public UserDTO getByUser() {
         User user = userRepository.findById(currentUserService.getUserCurrent().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy user"));
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId());
+        userDTO.setFullName(user.getFullName());
+        userDTO.setUsername(user.getUsername());
+        return userDTO;
+    }
+
+    @Override
+    public UserDTO findByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Not found with username" + username));
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());
         userDTO.setFullName(user.getFullName());
@@ -128,8 +157,8 @@ public class UserService implements IUserService {
             userDTO.setId(user.getId());
             userDTO.setFullName(user.getFullName());
             Optional<Follow> checkBetWeenUser = followRepository
-                    .findByFollowerIdAndFollowingId(currentUserId, user.getId() );
-            if(checkBetWeenUser.isPresent()){
+                    .findByFollowerIdAndFollowingId(currentUserId, user.getId());
+            if (checkBetWeenUser.isPresent()) {
                 userDTO.setIsFollowing(true);
             }
             userDTO.setUsername(user.getUsername());
@@ -137,4 +166,6 @@ public class UserService implements IUserService {
             return userDTO;
         }).toList();
     }
+
+
 }

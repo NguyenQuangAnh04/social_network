@@ -6,19 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class MessageDTO {
-    private Long id;
-    private String content;
-    private String fullName;
-    private String room;
-    private String timeStamp;
-    private Long senderId;
+public class NotificationDTO {
+    private String sender;
     private Long receiverId;
-    private int countMessageNotRead;
-    private boolean parent;
+    private String type; // LIKE, COMMENT, MESSAGE
+    private String content;
+    private LocalDateTime createdAt;
 }

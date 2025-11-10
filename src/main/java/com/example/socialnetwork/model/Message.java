@@ -17,7 +17,6 @@ public class Message {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id")
     private User sender;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id")
     private User receiver;
@@ -25,6 +24,11 @@ public class Message {
     private String content;
 
     private LocalDateTime timestamp;
+    @Column(nullable = false)
+    private boolean isRead = false;
+    @ManyToOne
+    @JoinColumn(name = "room_id")
+    private Room room;
 //    @OneToMany(mappedBy = "message")
 //    List<MessageDetails> messageDetails;
 }

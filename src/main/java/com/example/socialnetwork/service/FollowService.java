@@ -1,5 +1,6 @@
 package com.example.socialnetwork.service;
 
+import com.example.socialnetwork.dto.FriendDTO;
 import com.example.socialnetwork.model.Follow;
 import com.example.socialnetwork.model.User;
 import com.example.socialnetwork.repository.FollowRepository;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -50,5 +52,19 @@ public class FollowService implements IFollowService {
             followRepository.deleteByFollowerAndFollowing(currentUserService.getUserCurrent(), user.get());
             return true;
         }
+    }
+
+    @Override
+    public List<FriendDTO> findAllFriendByUser(Long userId) {
+        List<Follow> follows = followRepository.findByFollowing(userId);
+        return follows.stream().map(
+                item -> {
+                    return FriendDTO.builder()
+                            .id(item.getFollowing().getId())
+                            .fullName(item.getFollowing().getFullName())
+                            .username(item.getFollowing().getUsername())
+                            .build();
+                }
+        ).toList();
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -84,11 +85,14 @@ public class CommentService implements ICommentService {
         List<CommentDTO> roots = new ArrayList<>();
         for (Comment comment : comments) {
             CommentDTO commentDTO = new CommentDTO();
+            List<Long> commentList = likeRepository.findByIdx(comment.getId());
             commentDTO.setId(comment.getId());
             commentDTO.setPostId(comment.getPost().getId());
             commentDTO.setFullName(comment.getUser().getFullName());
             commentDTO.setChildren(new ArrayList<>());
+            commentDTO.setTimeAgo(getTimeAgo(comment.getCreatedAt()));
             commentDTO.setContent(comment.getContent());
+            commentDTO.setUsers(commentList);
             commentDTO.setParentComment(comment.getParent() != null ? comment.getParent().getId() : null);
             int total = commentRepository.countParentId(comment.getId());
             int totalLike = likeRepository.totalLikeComment(comment.getId());
@@ -107,5 +111,17 @@ public class CommentService implements ICommentService {
             }
         }
         return roots;
+    }
+
+    private String getTimeAgo(LocalDateTime localDateTime) {
+        // Tính khoảng thời gian giữa thời điểm 'localDateTime' (thời gian tạo bài viết) và thời điểm hiện tại
+        Duration duration = Duration.between(localDateTime, LocalDateTime.now());
+        long seconds = duration.getSeconds();
+        if (seconds < 60) return "Vừa xong";
+        if (seconds < 3600) return seconds / 60 + " phút trước";
+        if (seconds < 86400) return seconds / 3600 + " giờ trước";
+        if (seconds < 2592000) return seconds / 86400 + " ngày trước";
+        if (seconds < 31104000) return seconds / 2592000 + " tháng trước";
+        return seconds / 31104000 + " năm trước";
     }
 }

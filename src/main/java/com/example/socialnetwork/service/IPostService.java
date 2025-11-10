@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 public interface IPostService {
-    Post createPost(PostDTO postDTO) ;
+    Post createPost(PostDTO postDTO, MultipartFile file) throws IOException ;
 
     List<PostDTO> findAll();
 
@@ -18,4 +18,6 @@ public interface IPostService {
     UserProfileResponse findAllPostByUser(String username);
     PostDTO editPost(PostDTO postDTO);
     void deletePostById(Long postId);
+
+    PostDTO findPostById(Long postId);
 }

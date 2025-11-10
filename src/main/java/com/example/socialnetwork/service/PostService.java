@@ -12,7 +12,9 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,15 +36,21 @@ public class PostService implements IPostService {
     private LikeRepository likeRepository;
     @Autowired
     private CurrentUserService currentUserService;
-
+    @Autowired
+    private CloudinaryService cloudinaryService;
     @Autowired
     private PostMapper postMapper;
     @Autowired
     private FollowRepository followRepository;
+
     @Override
-    public Post createPost(PostDTO postDTO) {
+    public Post createPost(PostDTO postDTO, MultipartFile file) throws IOException {
         User user = currentUserService.getUserCurrent();
         Post post = postMapper.toEntity(postDTO, user);
+        if (file != null) {
+            String url = cloudinaryService.uploadFilePost(file, post.getId());
+            post.setImageUrl(url);
+        }
         return postRepository.save(post);
     }
 
@@ -63,6 +71,7 @@ public class PostService implements IPostService {
                     List<LikeDTO> likes = likeEntity.stream().map(like -> {
                         LikeDTO likeDTO = new LikeDTO();
                         likeDTO.setId(like.getId());
+                        likeDTO.setPostId(item.getId());
                         likeDTO.setUserId(like.getUser().getId());
                         return likeDTO;
                     }).collect(Collectors.toList());
@@ -119,14 +128,14 @@ public class PostService implements IPostService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tài khoản"));
         List<Post> postList = postRepository.findByAuthor(user);
-        if(postList.isEmpty()) {
+        if (postList.isEmpty()) {
             UserDTO userDTO = new UserDTO();
             userDTO.setId(user.getId());
             userDTO.setFullName(user.getFullName());
-           Optional<Follow> follow = followRepository.findByFollowerIdAndFollowingId(user.getId(), currentUserService.getUserCurrent().getId());
-            if(follow.isPresent()){
+            Optional<Follow> follow = followRepository.findByFollowerIdAndFollowingId(user.getId(), currentUserService.getUserCurrent().getId());
+            if (follow.isPresent()) {
                 userDTO.setIsFollowing(Boolean.TRUE);
-            }else{
+            } else {
                 userDTO.setIsFollowing(Boolean.FALSE);
             }
             userDTO.setUsername(user.getUsername());
@@ -161,9 +170,9 @@ public class PostService implements IPostService {
         userDTO.setId(user.getId());
         userDTO.setFullName(user.getFullName());
         Optional<Follow> follow = followRepository.findByFollowerIdAndFollowingId(currentUserService.getUserCurrent().getId(), user.getId());
-        if(follow.isPresent()){
+        if (follow.isPresent()) {
             userDTO.setIsFollowing(Boolean.TRUE);
-        }else{
+        } else {
             userDTO.setIsFollowing(Boolean.FALSE);
         }
         userDTO.setUsername(user.getUsername());
@@ -218,6 +227,23 @@ public class PostService implements IPostService {
             likeRepository.deleteAll(likes);
         }
         postRepository.delete(post);
+    }
+
+    @Override
+    public PostDTO findPostById(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+        Long totalComment = (long) commentRepository.totalCommentByPost(post.getId());
+        Long totalLike = (long) likeRepository.totalLikeByPost(post.getId());
+        return PostDTO.builder()
+                .id(postId)
+                .content(post.getContent())
+                .timeAgo(getTimeAgo(post.getCreatedAt()))
+                .totalLike(totalLike)
+                .image_url(post.getImageUrl())
+                .fullName(post.getAuthor().getUsername())
+                .build();
+
     }
 
     private String getTimeAgo(LocalDateTime localDateTime) {

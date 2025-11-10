@@ -24,7 +24,6 @@ public class Post {
     private String content;
 
     private String imageUrl;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

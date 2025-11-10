@@ -24,6 +24,7 @@ public class JwtUtils {
     public String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getUsername())
+                .setId(String.valueOf(user.getId()))
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(singingKey(secret), SignatureAlgorithm.HS256)
@@ -48,6 +49,11 @@ public class JwtUtils {
         return (username.equals(extractUserName(token)) && !isExpiration(token).before(new Date()));
     }
 
+    public Long extractUserId(String token){
+        String id =  extractToken(token, Claims::getId);
+        return Long.valueOf(id);
+    }
+
     public Claims extractAllToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(singingKey(secret))
@@ -55,7 +61,9 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody();
     }
-
+    public long getRemainingTime(String token){
+        return isExpiration(token).getTime() - System.currentTimeMillis();
+    }
     public Boolean validateToken(String token){
         try{
             extractAllToken(token);

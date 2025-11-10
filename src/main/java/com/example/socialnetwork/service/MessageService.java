@@ -2,22 +2,23 @@ package com.example.socialnetwork.service;
 
 import com.example.socialnetwork.dto.MessageDTO;
 import com.example.socialnetwork.model.Message;
+import com.example.socialnetwork.model.Room;
 import com.example.socialnetwork.model.User;
 import com.example.socialnetwork.repository.MessageRepository;
+import com.example.socialnetwork.repository.RoomRepository;
 import com.example.socialnetwork.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,64 +30,148 @@ public class MessageService implements IMessageService {
     private UserRepository userRepository;
     @Autowired
     private CurrentUserService currentUserService;
+    @Autowired
+    private SimpMessagingTemplate simpMessagingTemplate;
+    @Autowired
+    private RoomRepository roomRepository;
+
     @Override
     @Transactional
-    public Message sendMessage(MessageDTO messageDTO) {
-        User userSend = userRepository.findById(messageDTO.getUserId1())
-                .orElseThrow();
-        User userReceiver = userRepository.findById(messageDTO.getUserId2())
-                .orElseThrow();
+    public MessageDTO sendMessage(MessageDTO messageDTO) {
+        User sender = userRepository.findById(messageDTO.getSenderId())
+                .orElseThrow(() -> new RuntimeException("Sender not found"));
+        User receiver = userRepository.findById(messageDTO.getReceiverId())
+                .orElseThrow(() -> new RuntimeException("Receiver not found"));
+        if (messageDTO.getContent() == null || messageDTO.getContent().isBlank()) {
+            throw new RuntimeException("Vui lòng nhập nội dung tin nhắn");
+        }
         Message message = new Message();
         if (messageDTO.getContent() == null) throw new RuntimeException("Vui lòng nhập tin nhắn để gửi");
-        message.setSender(userSend);
-        message.setReceiver(userReceiver);
+        message.setSender(sender);
+        message.setReceiver(receiver);
         message.setContent(messageDTO.getContent());
         message.setTimestamp(LocalDateTime.now());
-        return messageRepository.save(message);
+
+        if (messageDTO.getRoom() == null || "undefined".equals(messageDTO.getRoom())) {
+            Room room = new Room();
+            room.setName(generateRoom(sender.getId(), receiver.getId()));
+            roomRepository.save(room);
+            message.setRoom(room);
+        } else {
+            Room existing = roomRepository.findByName(messageDTO.getRoom())
+                    .orElseThrow(() -> new IllegalArgumentException("Not found!"));
+            message.setRoom(existing);
+        }
+        Message savedMessage = messageRepository.save(message);
+        int countmessage = countMessageNotRead(receiver.getId());
+        MessageDTO dto = new MessageDTO().builder()
+                .id(savedMessage.getId())
+                .content(savedMessage.getContent())
+                .receiverId(receiver.getId())
+                .senderId(sender.getId())
+                .countMessageNotRead(countmessage)
+                .room(savedMessage.getRoom().getName())
+                .timeStamp(savedMessage.getTimestamp().toString())
+                .build();
+        log.info("Data: {}", dto);
+        simpMessagingTemplate.convertAndSend("/topic/room/" + savedMessage.getRoom().getName(), dto);
+        return dto;
     }
 
     @Override
-    public List<MessageDTO> historyMessage(Long userId) {
-        List<Message> messages = messageRepository.findByAllContent(currentUserService.getUserCurrent().getId(), userId);
-        if(messages.isEmpty()) throw new EntityNotFoundException("This chat not message");
+    public List<MessageDTO> historyMessage(String room) {
+        Room existing = roomRepository.findByName(room)
+                .orElseThrow(() -> new IllegalArgumentException("Not found"));
+        List<Message> messages = messageRepository.findByRoomId(existing.getId());
+
+        if (messages.isEmpty())
+            throw new EntityNotFoundException("No messages found in this room");
+
+        Long currentId = currentUserService.getUserCurrent().getId();
+
         return messages.stream().map(item -> {
-            MessageDTO messageDTO = new MessageDTO();
-            messageDTO.setContent(item.getContent());
-            messageDTO.setId(item.getId());
-            messageDTO.setUserId1(item.getSender().getId());
-            messageDTO.setUserId2(item.getReceiver().getId());
-            messageDTO.setTimeStamp(item.getTimestamp().toString());
-            messageDTO.setSenderId(item.getSender().getId());
-            return messageDTO;
+            MessageDTO dto = new MessageDTO();
+            dto.setId(item.getId());
+            dto.setSenderId(item.getSender().getId());
+            dto.setReceiverId(item.getReceiver().getId());
+            dto.setContent(item.getContent());
+            dto.setTimeStamp(item.getTimestamp().toString());
+            dto.setParent(item.getSender().getId().equals(currentId));
+            dto.setRoom(item.getRoom().getName());
+            return dto;
         }).collect(Collectors.toList());
+    }
+
+
+    public List<MessageDTO> getAllConversations() {
+        User user = currentUserService.getUserCurrent();
+        List<Message> messages = messageRepository.findMessagesByUser(user.getId());
+
+        Map<Long, Message> lastMessageMap = new HashMap<>();
+
+        for (Message m : messages) {
+            Long partnerId = m.getSender().getId().equals(user.getId()) ? m.getReceiver().getId() : m.getSender().getId();
+
+            if (!lastMessageMap.containsKey(partnerId) ||
+                    m.getTimestamp().isAfter(lastMessageMap.get(partnerId).getTimestamp())) {
+                lastMessageMap.put(partnerId, m);
+            }
+        }
+
+        List<MessageDTO> dtos = new ArrayList<>();
+        for (Map.Entry<Long, Message> entry : lastMessageMap.entrySet()) {
+            Message m = entry.getValue();
+            Long partnerId = entry.getKey();
+
+            User partner = m.getSender().getId().equals(user.getId())
+                    ? m.getReceiver()
+                    : m.getSender();
+
+            MessageDTO dto = new MessageDTO();
+            dto.setId(m.getId());
+            dto.setFullName(partner.getFullName());
+            dto.setRoom(m.getRoom().getName());
+            dto.setReceiverId(partnerId);
+            dto.setSenderId(m.getSender().getId());
+            dto.setContent(m.getContent());
+            dto.setTimeStamp(m.getTimestamp().toString());
+            dto.setParent(m.getSender().getId().equals(user.getId()));
+
+            dtos.add(dto);
+        }
+
+
+        return dtos;
     }
 
     @Override
-    public List<MessageDTO> getAllChatByUser() {
-        List<Long> findByChatFromId = messageRepository.findConversationPartnerIds(currentUserService.getUserCurrent().getId());
-        return findByChatFromId.stream().map(user -> {
-            Optional<User> userEntity = userRepository.findById(user);
-            if(userEntity.isEmpty()) throw new EntityNotFoundException("Not found userId " + userEntity.get().getId());
-            PageRequest pageRequest = PageRequest.of(0, 1);
-            String findByLastContent = messageRepository.findContentLast(currentUserService.getUserCurrent().getId(), userEntity.get().getId(), pageRequest).stream().findFirst().orElse(null);
-            MessageDTO messageDTO = new MessageDTO();
-            messageDTO.setId(userEntity.get().getId());
-            messageDTO.setFullName(userEntity.get().getFullName());
-            messageDTO.setContent(findByLastContent.toString());
-            return messageDTO;
-        }).collect(Collectors.toList());
+    @Transactional
+    public void markMessagesAsRead(Long userId, String roomName) {
+        Room room = roomRepository.findByName(roomName)
+                .orElseThrow(() -> new IllegalArgumentException("Not found with room " + roomName));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Not found userId " + userId));
+
+        messageRepository.markAsRead(user.getId(), room.getName());
+        messageRepository.flush(); // commit ngay
+
+        int countNotRead = countMessageNotRead(userId);
+        simpMessagingTemplate.convertAndSend("/topic/message/count", countNotRead);
     }
 
 
-    public String getTimeAgo(LocalDateTime localDateTime) {
-        Duration duration = Duration.between(localDateTime, LocalDateTime.now());
-        long seconds = duration.getSeconds();
-        if (seconds < 60) return "Vừa xong";
-        if (seconds < 3600) return seconds / 60 + " phút trước";
-        if (seconds < 86400) return seconds / 3600 + " giờ trước";
-        if (seconds < 2592000) return seconds / 86400 + " ngày trước";
-        if (seconds < 31104000) return seconds / 2592000 + " tháng trước";
-        return seconds / 31104000 + " năm trước";
+    @Override
+    public int countMessageNotRead(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Not found userId"));
+        return messageRepository.countByNotRead(user.getId());
+    }
+
+    public String generateRoom(Long u1, Long u2) {
+        Long min = Math.min(u1, u2);
+        Long max = Math.max(u1, u2);
+        return "room_" + min + "_" + max;
     }
 
 

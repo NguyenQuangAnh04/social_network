@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -39,7 +41,8 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
     private OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
     @Autowired
     private TokenRepository tokenRepository;
-
+    @Autowired
+    private StringRedisTemplate  stringRedisTemplate;
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
@@ -105,21 +108,16 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         }
         String accessToken = jwtUtils.generateToken(finalUser);
-        ResponseCookie cookie = ResponseCookie.from("access_token", accessToken)
-                .path("/")
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .maxAge(15 * 60)
-                .build();
+
 
         Token token = new Token();
+
         token.setUser(finalUser);
         token.setRefreshToken(UUID.randomUUID().toString());
         token.setRefreshTokenCreatedAt(LocalDateTime.now());
         token.setRefreshTokenExpiresAt(LocalDateTime.now().plus(30, ChronoUnit.DAYS));
         tokenRepository.save(token);
-
+        stringRedisTemplate.opsForValue().set("TOKENS_" + finalUser.getId(), accessToken, 15, TimeUnit.MINUTES);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", token.getRefreshToken())
                 .httpOnly(true)
                 .path("/")
@@ -128,7 +126,6 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
                 .maxAge(30 * 24 * 60 * 60)
                 .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
         if(finalUser.getFullName() == null || finalUser.getFullName().isEmpty()){
             response.sendRedirect("http://localhost:5173/complete-profile");

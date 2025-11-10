@@ -10,7 +10,8 @@ public class EmailSender {
     public static void sendEmail(String to, String subject, String body) throws MessagingException {
         String host = "smtp.gmail.com";
         final String email = "nguyenquanganh0704204@gmail.com";
-        final String password = "xwsa wwoq yknl yvxm";
+        final String password = "mbge zhbb xkxj pqoe";
+
 
         Properties properties = new Properties();
         properties.put("mail.smtp.host", host);
