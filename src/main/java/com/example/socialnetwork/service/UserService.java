@@ -155,14 +155,13 @@ public class UserService implements IUserService {
                 && item.getId() != currentUserId).map(user -> {
             UserDTO userDTO = new UserDTO();
             userDTO.setId(user.getId());
+            userDTO.setUsername(user.getUsername());
             userDTO.setFullName(user.getFullName());
             Optional<Follow> checkBetWeenUser = followRepository
                     .findByFollowerIdAndFollowingId(currentUserId, user.getId());
             if (checkBetWeenUser.isPresent()) {
                 userDTO.setIsFollowing(true);
             }
-            userDTO.setUsername(user.getUsername());
-
             return userDTO;
         }).toList();
     }

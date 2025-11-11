@@ -42,6 +42,8 @@ public class PostService implements IPostService {
     private PostMapper postMapper;
     @Autowired
     private FollowRepository followRepository;
+    @Autowired
+    private SavedRepository savedRepository;
 
     @Override
     public Post createPost(PostDTO postDTO, MultipartFile file) throws IOException {
@@ -64,9 +66,15 @@ public class PostService implements IPostService {
                     postDTO.setUserId(item.getAuthor().getId());
                     postDTO.setFullName(item.getAuthor().getFullName());
                     postDTO.setUserId(item.getAuthor().getId());
+                    postDTO.setUsername(item.getAuthor().getUsername());
                     postDTO.setContent(item.getContent());
                     postDTO.setImage_url(item.getImageUrl());
                     postDTO.setTimeAgo(getTimeAgo(item.getCreatedAt()));
+
+                    Long[] saves = savedRepository.findAllByPost(item.getId());
+                    if(saves != null) {
+                        postDTO.setSavedByUser(saves);
+                    }
                     List<Like> likeEntity = likeRepository.findAllByPost(item);
                     List<LikeDTO> likes = likeEntity.stream().map(like -> {
                         LikeDTO likeDTO = new LikeDTO();

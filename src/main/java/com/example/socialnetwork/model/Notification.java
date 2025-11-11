@@ -32,4 +32,11 @@ public class Notification {
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+    @ManyToOne
+    @JoinColumn(name = "post_id")
+    private Post post;
+
+    @ManyToOne
+    @JoinColumn(name = "comment_id")
+    private Comment comment;
 }

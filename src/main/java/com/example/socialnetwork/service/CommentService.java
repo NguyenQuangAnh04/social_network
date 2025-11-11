@@ -90,6 +90,7 @@ public class CommentService implements ICommentService {
             commentDTO.setPostId(comment.getPost().getId());
             commentDTO.setFullName(comment.getUser().getFullName());
             commentDTO.setChildren(new ArrayList<>());
+            commentDTO.setUserId(comment.getUser().getId());
             commentDTO.setTimeAgo(getTimeAgo(comment.getCreatedAt()));
             commentDTO.setContent(comment.getContent());
             commentDTO.setUsers(commentList);

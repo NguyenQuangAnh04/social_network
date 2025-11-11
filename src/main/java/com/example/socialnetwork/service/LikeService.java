@@ -28,6 +28,7 @@ public class LikeService implements ILikeService {
     private final LikeRepository likeRepository;
     private final CurrentUserService currentUserService;
     private final CommentRepository commentRepository;
+
     @Override
     public Like likePost(Long postId) {
         Post post = postRepository.findById(postId)
@@ -60,24 +61,25 @@ public class LikeService implements ILikeService {
     public Like likeComment(Long commentId) {
         Optional<Comment> comment = commentRepository.findById(commentId);
         if (comment.isEmpty()) throw new EntityNotFoundException("Not found comment " + commentId);
-        Optional<Like> hasLiked = likeRepository.findByCommentIdAndUserId(commentId, currentUserService.getUserCurrent().getId());
-        if (hasLiked.isPresent()) {
-            likeRepository.delete(hasLiked.get());
-            return null;
-        } else {
-            Like like = new Like();
-            like.setCreatedAt(LocalDateTime.now());
-            like.setComment(comment.get());
-            like.setUser(currentUserService.getUserCurrent());
-            return likeRepository.save(like);
-        }
+        Like like = new Like();
+        like.setCreatedAt(LocalDateTime.now());
+        like.setComment(comment.get());
+        like.setUser(currentUserService.getUserCurrent());
+        return likeRepository.save(like);
     }
 
+    @Override
+    @Transactional
+    public void unlikeComment(Long commentId) {
+        Optional<Comment> comment = commentRepository.findById(commentId);
+        if (comment.isEmpty()) throw new EntityNotFoundException("Not found comment " + commentId);
+        likeRepository.deleteByComment(commentId);
+    }
 
 
     @Override
     public List<Long> findHasLikedByUser() {
-       return likeRepository.likeByUser(currentUserService.getUserCurrent().getId())
-               .stream().filter(Objects::nonNull).collect(Collectors.toList());
+        return likeRepository.likeByUser(currentUserService.getUserCurrent().getId())
+                .stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 }

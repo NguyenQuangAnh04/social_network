@@ -6,7 +6,7 @@ import com.example.socialnetwork.model.Notification;
 import java.util.List;
 
 public interface INotificationService {
-    Notification createNotification(Long userId, String content,String type);
+    NotificationDTO createNotification(Long userId,Long receiverId, String content,String type, Long postId, Long commentId);
     List<NotificationDTO> getLatestNotifications(Long userId);
-    void markAsRead(Long notificationId);
+    void markAsRead(Long[] notificationId);
 }

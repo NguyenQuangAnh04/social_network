@@ -11,6 +11,6 @@ public interface ILikeService {
     void unlikePost(Long postId);
 
     Like likeComment(Long commentId);
-
+    void unlikeComment(Long commentId);
     List<Long> findHasLikedByUser();
 }

@@ -55,6 +55,11 @@ public class FollowService implements IFollowService {
     }
 
     @Override
+    public List<FriendDTO> findAll() {
+       return null;
+    }
+
+    @Override
     public List<FriendDTO> findAllFriendByUser(Long userId) {
         List<Follow> follows = followRepository.findByFollowing(userId);
         return follows.stream().map(

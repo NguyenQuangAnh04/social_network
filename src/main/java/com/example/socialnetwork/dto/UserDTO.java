@@ -22,6 +22,6 @@ public class UserDTO {
     private List<PostDTO> postDTOS;
     private String otp;
     private List<LikeDTO> likeDTOList;
-    private Boolean isFollowing;
+    private Boolean isFollowing =false;
 
 }

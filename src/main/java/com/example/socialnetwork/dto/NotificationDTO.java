@@ -11,9 +11,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class NotificationDTO {
-    private String sender;
+    private Long id;
+    private Long senderId;
+    private String fullName;
     private Long receiverId;
     private String type; // LIKE, COMMENT, MESSAGE
     private String content;
-    private LocalDateTime createdAt;
+    private String createdAt;
+    private boolean isRead;
+    private Long postId;
+    private Long commentId;
 }

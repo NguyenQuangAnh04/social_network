@@ -24,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -39,7 +40,6 @@ public class UserController {
     private final TokenRepository tokenRepository;
     private final JwtUtils jwtUtils;
     private final CurrentUserService currentUserService;
-    private final StringRedisTemplate stringRedisTemplate;
     private final TokenBlackListService blackListService;
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody() UserDTO userDTO, HttpServletResponse response) {
@@ -49,24 +49,33 @@ public class UserController {
         String refreshToken = null;
         LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
         Token tokens = tokenRepository.findRefreshTokensByUserId(user.get().getId());
+        Cookie cookie = null;
         if (tokens == null ) {
             Token token = Token
                     .builder()
                     .refreshToken(UUID.randomUUID().toString())
                     .user(user.get())
                     .refreshTokenCreatedAt(now)
-                    .refreshTokenExpiresAt(now.plusMinutes(30))
+                    .refreshTokenExpiresAt(now.plusDays(30))
                     .build();
             tokenRepository.save(token);
             refreshToken = token.getRefreshToken();
+            cookie = new Cookie("refresh_token", refreshToken);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setSecure(true);
+            cookie.setMaxAge(7 * 24 * 60 * 60);
         }else{
             refreshToken = tokens.getRefreshToken();
+            cookie = new Cookie("refresh_token", refreshToken);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setSecure(true);
+            Duration duration = Duration.between(now, tokens.getRefreshTokenExpiresAt());
+            int maxAgeInSeconds = (int) duration.toSeconds();
+            cookie.setMaxAge(maxAgeInSeconds);
         }
-        Cookie cookie = new Cookie("refresh_token", refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setSecure(true);
-        cookie.setMaxAge(7 * 24 * 60 * 60);
+
         response.addCookie(cookie);
         Map<String, String> map = new HashMap<>();
         map.put("access_token", access_token);
@@ -74,22 +83,41 @@ public class UserController {
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@CookieValue(name = "refresh_token", required = false) String refreshTokenFromCookie,
-                                          @RequestBody(required = false) Map<String, String> request) {
-        if (refreshTokenFromCookie == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<?> refreshToken(
+            HttpServletRequest request
+    ) {
+        Cookie[] cookies = request.getCookies();
+        String refreshToken = null;
+        for(Cookie cookie : cookies){
+            if(cookie.getName().equals("refresh_token")){
+                refreshToken =  cookie.getValue();
+            }
+        }
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No refresh token");
         }
 
-        Optional<Token> refreshToken = tokenRepository.findByRefreshToken(refreshTokenFromCookie);
-        if (refreshToken.isPresent() && refreshToken.get().getRefreshTokenExpiresAt().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        Optional<Token> tokenOptional = tokenRepository.findByRefreshToken(refreshToken);
+        if (tokenOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
         }
-        Map<String, String> map = new HashMap<>();
-        String token = jwtUtils.generateToken(currentUserService.getUserCurrent());
 
-        map.put("access_token", token);
-        return ResponseEntity.ok(map);
+        Token token = tokenOptional.get();
+
+        if (token.getRefreshTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token expired");
+        }
+
+        User user = token.getUser();
+        String newAccessToken = jwtUtils.generateToken(user);
+
+        token.setRefreshTokenIssuedAt(LocalDateTime.now());
+        tokenRepository.save(token);
+        Map<String, String> response = new HashMap<>();
+        response.put("access_token", newAccessToken);
+        return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody() UserDTO userDTO) {

@@ -20,9 +20,11 @@ public class PostDTO {
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
     private String fullName;
+    private String username;
 //    private List<CommentDTO> commentDTOList;
     private String timeAgo;
     private List<LikeDTO> likeDTOList;
+    private Long[] savedByUser;
     private Long totalLike;
     private Long totalComment;
 }

@@ -32,4 +32,5 @@ public class Like {
     @JsonIgnore
     private Comment comment;
 
+
 }
