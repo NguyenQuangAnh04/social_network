@@ -17,6 +17,7 @@ public class NotificationDTO {
     private Long receiverId;
     private String type; // LIKE, COMMENT, MESSAGE
     private String content;
+    private String avatar;
     private String createdAt;
     private boolean isRead;
     private Long postId;

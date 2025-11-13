@@ -67,6 +67,7 @@ public class FollowService implements IFollowService {
                     return FriendDTO.builder()
                             .id(item.getFollowing().getId())
                             .fullName(item.getFollowing().getFullName())
+                            .imageUrl(item.getFollowing().getProfilePicture())
                             .username(item.getFollowing().getUsername())
                             .build();
                 }

@@ -83,6 +83,7 @@ public class NotificationService implements INotificationService {
                             .postId(item.getPost().getId())
                             .fullName(item.getSenderId().getFullName())
                             .id(item.getId())
+                            .avatar(item.getSenderId().getProfilePicture())
                             .type(item.getType())
                             .build();
                 }
@@ -91,9 +92,9 @@ public class NotificationService implements INotificationService {
 
     @Override
     public void markAsRead(Long[] notificationId) {
-       for(Long id : notificationId) {
-           notificationRepository.markAsRead(id);
-       }
+        for (Long id : notificationId) {
+            notificationRepository.markAsRead(id);
+        }
 
     }
 

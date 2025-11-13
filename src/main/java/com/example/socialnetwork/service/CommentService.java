@@ -52,6 +52,7 @@ public class CommentService implements ICommentService {
             commentDTO.setId(item.getId());
             commentDTO.setFullName(item.getUser().getFullName());
             commentDTO.setUserId(item.getUser().getId());
+            commentDTO.setAvatar(item.getUser().getProfilePicture());
             commentDTO.setParentComment(item.getParent().getId());
             commentDTO.setContent(item.getContent());
             return commentDTO;
@@ -90,6 +91,7 @@ public class CommentService implements ICommentService {
             commentDTO.setPostId(comment.getPost().getId());
             commentDTO.setFullName(comment.getUser().getFullName());
             commentDTO.setChildren(new ArrayList<>());
+            commentDTO.setAvatar(comment.getUser().getProfilePicture());
             commentDTO.setUserId(comment.getUser().getId());
             commentDTO.setTimeAgo(getTimeAgo(comment.getCreatedAt()));
             commentDTO.setContent(comment.getContent());
