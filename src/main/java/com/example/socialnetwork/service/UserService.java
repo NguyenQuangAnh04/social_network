@@ -9,6 +9,7 @@ import com.example.socialnetwork.enums.Role;
 import com.example.socialnetwork.model.Follow;
 import com.example.socialnetwork.model.User;
 import com.example.socialnetwork.repository.FollowRepository;
+import com.example.socialnetwork.repository.RoleRepository;
 import com.example.socialnetwork.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +40,10 @@ public class UserService implements IUserService {
     @Autowired
     private FollowRepository followRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private CloudinaryService cloudinaryService;
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Override
     public String login(String username, String password) {
@@ -62,9 +66,9 @@ public class UserService implements IUserService {
         Optional<User> existEmail = userRepository.findByEmail(email);
         if (existEmail.isPresent()) throw new RuntimeException("Email đã tồn tại");
         User user = new User();
+
         user.setUsername(userRegisterDTO.getUsername());
         user.setPassword(bCryptPasswordEncoder.encode(userRegisterDTO.getPassword()));
-        user.setRole(Role.USER);
         user.setEmail(userRegisterDTO.getEmail());
         user.setFullName(userRegisterDTO.getFullName());
         user.setCreatedAt(LocalDateTime.now());
@@ -88,12 +92,12 @@ public class UserService implements IUserService {
 
 //        OTPService.sendOTP(userDTO.getEmail(), OTPPurpose.FOR_REGISTER);
 //        account.put(userDTO.getEmail(), userDTO);
+        com.example.socialnetwork.model.Role role = roleRepository.findByRole(Role.USER);
         User user = new User();
         user.setEmail(userDTO.getEmail());
         user.setFullName(userDTO.getFullName());
         user.setUsername(userDTO.getUsername());
-        user.setRole(Role.USER);
-
+        user.setRoles(Collections.singleton(role));
         String hashPassword = bCryptPasswordEncoder.encode(userDTO.getPassword());
         user.setPassword(hashPassword);
         user.setCreatedAt(LocalDateTime.now());
@@ -107,6 +111,11 @@ public class UserService implements IUserService {
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());
         userDTO.setFullName(user.getFullName());
+        userDTO.setBio(user.getBio());
+        userDTO.setUrlSocial(user.getUrlSocial());
+        userDTO.setEmailContact(user.getEmailContact());
+        userDTO.setProfilePicture(user.getProfilePicture());
+        userDTO.setAddress(user.getAddress());
         userDTO.setUsername(user.getUsername());
         return userDTO;
     }
@@ -118,6 +127,11 @@ public class UserService implements IUserService {
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());
         userDTO.setFullName(user.getFullName());
+        userDTO.setUrlSocial(user.getUrlSocial());
+        userDTO.setEmailContact(user.getEmailContact());
+        userDTO.setProfilePicture(user.getProfilePicture());
+        userDTO.setAddress(user.getAddress());
+        userDTO.setBio(user.getBio());
         userDTO.setUsername(user.getUsername());
         return userDTO;
     }
@@ -130,22 +144,16 @@ public class UserService implements IUserService {
             UserDTO userDTO = new UserDTO();
             userDTO.setId(item.getId());
             userDTO.setFullName(item.getFullName());
+            userDTO.setUrlSocial(item.getUrlSocial());
+            userDTO.setEmailContact(item.getEmailContact());
+            userDTO.setProfilePicture(item.getProfilePicture());
+            userDTO.setAddress(item.getAddress());
+
             userDTO.setUsername(item.getUsername());
             return userDTO;
         }).toList();
     }
 
-    private String getTimeAgo(LocalDateTime localDateTime) {
-        // Tính khoảng thời gian giữa thời điểm 'localDateTime' (thời gian tạo bài viết) và thời điểm hiện tại
-        Duration duration = Duration.between(localDateTime, LocalDateTime.now());
-        long seconds = duration.getSeconds();
-        if (seconds < 60) return "Vừa xong";
-        if (seconds < 3600) return seconds / 60 + " phút trước";
-        if (seconds < 86400) return seconds / 3600 + " giờ trước";
-        if (seconds < 2592000) return seconds / 86400 + " ngày trước";
-        if (seconds < 31104000) return seconds / 2592000 + " tháng trước";
-        return seconds / 31104000 + " năm trước";
-    }
 
     @Override
     public List<UserDTO> findAll() {
@@ -164,6 +172,27 @@ public class UserService implements IUserService {
             }
             return userDTO;
         }).toList();
+    }
+
+    @Override
+    public void editProfileUser(Long userId,UserDTO userDTO, MultipartFile image) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Not found with username" + userDTO.getUsername()));
+
+        user.setFullName(userDTO.getFullName());
+        user.setBio(userDTO.getBio());
+        user.setEmailContact(userDTO.getEmailContact());
+        user.setAddress(userDTO.getAddress());
+        if (image != null) {
+            try {
+                String url = cloudinaryService.uploadFilePost(image);
+                user.setProfilePicture(url);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        user.setUrlSocial(userDTO.getUrlSocial());
+        userRepository.save(user);
     }
 
 

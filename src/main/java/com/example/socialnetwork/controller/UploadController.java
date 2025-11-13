@@ -16,7 +16,7 @@ public class UploadController {
 
     @PostMapping("/post/{postId}")
     public ResponseEntity<String> postImage(@RequestParam("file") MultipartFile file, @PathVariable Long postId) throws IOException {
-        return ResponseEntity.ok(cloudinaryService.uploadFilePost(file, postId));
+        return ResponseEntity.ok(cloudinaryService.uploadFilePost(file));
     }
 
 //    @PostMapping("/comment/{postId}")

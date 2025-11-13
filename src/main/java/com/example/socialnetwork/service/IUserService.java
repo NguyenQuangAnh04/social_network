@@ -4,6 +4,7 @@ import com.example.socialnetwork.dto.FriendDTO;
 import com.example.socialnetwork.dto.UserDTO;
 import com.example.socialnetwork.model.User;
 import jakarta.mail.MessagingException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,5 +17,5 @@ public interface IUserService {
     UserDTO findByUsername(String username);
     List<UserDTO> findByName(String fullname);
     List<UserDTO> findAll();
-
+    void editProfileUser(Long userId,UserDTO userDTO , MultipartFile image);
 }

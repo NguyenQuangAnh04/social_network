@@ -29,11 +29,14 @@ public class SavedService implements ISaved {
         return saveds.stream().map(item -> {
             Long totalComment = (long) commentRepository.totalCommentByPost(item.getPost().getId());
             Long totalLike = (long) likeRepository.totalLikeByPost(item.getPost().getId());
+            Long[] saveUser = savedRepository.findAllByPost(item.getPost().getId());
             PostDTO postDTO = PostDTO.builder()
                     .content(item.getPost().getContent())
                     .fullName(item.getUser().getFullName())
                     .username(item.getUser().getUsername())
+                    .savedByUser(saveUser)
                     .totalLike(totalLike)
+                    .id(item.getPost().getId())
                     .totalComment(totalComment)
                     .image_url(item.getPost().getImageUrl())
                     .build();
@@ -60,10 +63,12 @@ public class SavedService implements ISaved {
     }
 
     @Override
-    public void unSavePost(Long postId) {
+    public void unSavePost(Long postId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Not found userId" + userId));
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Not found postId" + postId));
-        Saved existing = savedRepository.findByPost(post);
+        Saved existing = savedRepository.findByPostAndUser(post, user);
         if (existing != null) {
             savedRepository.delete(existing);
         }

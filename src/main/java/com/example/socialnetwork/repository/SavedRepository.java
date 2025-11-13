@@ -15,6 +15,7 @@ public interface SavedRepository extends JpaRepository<Saved, Long> {
     @Query("SELECT s.user.id from Saved s where s.post.id = :postId ")
     Long[] findAllByPost(@Param("postId") Long postId);
     Saved findByPost(Post post);
+    Saved findByPostAndUser(Post post, User user);
 
 
 }

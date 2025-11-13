@@ -15,6 +15,7 @@ public class MessageDTO {
     private Long id;
     private String content;
     private String fullName;
+    private String avatar;
     private String room;
     private String timeStamp;
     private Long senderId;

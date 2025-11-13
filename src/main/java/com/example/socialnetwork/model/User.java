@@ -6,7 +6,10 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +20,9 @@ import java.util.*;
 @Entity
 @Table(name = "users")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,9 +50,19 @@ public class User implements UserDetails {
 
     @Column(name = "github_id", unique = true)
     private Integer githubId;
+
+    private String provider;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+    @Column
+    private String address;
+    @Column
+    private String emailContact;
 
+    @Column
+    private String bio;
+    @Column
+    private String urlSocial;
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -72,12 +88,22 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "receiver")
     private List<Message> receivedMessages;
 
-    @Enumerated(EnumType.STRING)
-    private Role role = Role.USER;
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        return roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRole().name()))
+                .toList();
     }
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+
+    private Set<com.example.socialnetwork.model.Role> roles;
 
     @Override
     @JsonIgnore

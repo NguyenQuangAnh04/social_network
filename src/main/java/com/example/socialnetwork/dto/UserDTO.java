@@ -20,6 +20,10 @@ public class UserDTO {
     private String confirmPassword;
     private String profilePicture;
     private List<PostDTO> postDTOS;
+    private String bio;
+    private String emailContact;
+    private String address;
+    private String urlSocial;
     private String otp;
     private List<LikeDTO> likeDTOList;
     private Boolean isFollowing =false;

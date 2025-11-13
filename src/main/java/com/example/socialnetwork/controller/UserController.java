@@ -23,6 +23,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -41,6 +42,7 @@ public class UserController {
     private final JwtUtils jwtUtils;
     private final CurrentUserService currentUserService;
     private final TokenBlackListService blackListService;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody() UserDTO userDTO, HttpServletResponse response) {
         Optional<User> user = userRepository.findByUsername(userDTO.getUsername());
@@ -50,7 +52,7 @@ public class UserController {
         LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
         Token tokens = tokenRepository.findRefreshTokensByUserId(user.get().getId());
         Cookie cookie = null;
-        if (tokens == null ) {
+        if (tokens == null) {
             Token token = Token
                     .builder()
                     .refreshToken(UUID.randomUUID().toString())
@@ -65,7 +67,7 @@ public class UserController {
             cookie.setPath("/");
             cookie.setSecure(true);
             cookie.setMaxAge(7 * 24 * 60 * 60);
-        }else{
+        } else {
             refreshToken = tokens.getRefreshToken();
             cookie = new Cookie("refresh_token", refreshToken);
             cookie.setHttpOnly(true);
@@ -88,9 +90,9 @@ public class UserController {
     ) {
         Cookie[] cookies = request.getCookies();
         String refreshToken = null;
-        for(Cookie cookie : cookies){
-            if(cookie.getName().equals("refresh_token")){
-                refreshToken =  cookie.getValue();
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("refresh_token")) {
+                refreshToken = cookie.getValue();
             }
         }
         if (refreshToken == null) {
@@ -196,8 +198,15 @@ public class UserController {
     public ResponseEntity<UserDTO> search(@RequestParam(name = "username") String username) {
         return ResponseEntity.ok(userService.findByUsername(username));
     }
+
     @GetMapping("")
     public ResponseEntity<List<UserDTO>> findAll() {
         return ResponseEntity.ok(userService.findAll());
+    }
+
+    @PostMapping("/edit-profile/{userId}")
+    public ResponseEntity<Void> editProfile(@PathVariable Long userId,@RequestPart UserDTO userDTO, @RequestPart(name = "file", required = false) MultipartFile file) {
+        userService.editProfileUser(userId,userDTO, file);
+        return ResponseEntity.ok().build();
     }
 }

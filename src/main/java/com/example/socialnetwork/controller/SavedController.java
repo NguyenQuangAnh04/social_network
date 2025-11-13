@@ -25,9 +25,9 @@ public class SavedController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/delete/{postId}")
-    public ResponseEntity<Void> delete(@PathVariable Long postId) {
-        saved.unSavePost(postId);
+    @DeleteMapping("/delete/{postId}/{userId}")
+    public ResponseEntity<Void> delete(@PathVariable Long postId, @PathVariable Long userId) {
+        saved.unSavePost(postId, userId);
         return ResponseEntity.ok().build();
     }
 }

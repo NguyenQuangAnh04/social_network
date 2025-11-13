@@ -19,6 +19,7 @@ public class PostDTO {
     private Long userId;
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
+    private String avatar;
     private String fullName;
     private String username;
 //    private List<CommentDTO> commentDTOList;

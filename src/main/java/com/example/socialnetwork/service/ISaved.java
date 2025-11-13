@@ -9,7 +9,7 @@ public interface ISaved {
     List<SaveDTO> findAllSavedByUser(Long userId);
 
     void savePost(Long postId, Long userId);
-    void unSavePost(Long postId);
+    void unSavePost(Long postId, Long userId);
 
 
 }

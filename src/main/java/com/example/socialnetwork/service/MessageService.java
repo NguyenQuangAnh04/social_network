@@ -136,6 +136,7 @@ public class MessageService implements IMessageService {
             dto.setContent(m.getContent());
             dto.setTimeStamp(m.getTimestamp().toString());
             dto.setParent(m.getSender().getId().equals(user.getId()));
+            dto.setAvatar(m.getReceiver().getProfilePicture());
 
             dtos.add(dto);
         }

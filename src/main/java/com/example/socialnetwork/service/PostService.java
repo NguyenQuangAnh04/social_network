@@ -50,7 +50,7 @@ public class PostService implements IPostService {
         User user = currentUserService.getUserCurrent();
         Post post = postMapper.toEntity(postDTO, user);
         if (file != null) {
-            String url = cloudinaryService.uploadFilePost(file, post.getId());
+            String url = cloudinaryService.uploadFilePost(file);
             post.setImageUrl(url);
         }
         return postRepository.save(post);
@@ -70,7 +70,7 @@ public class PostService implements IPostService {
                     postDTO.setContent(item.getContent());
                     postDTO.setImage_url(item.getImageUrl());
                     postDTO.setTimeAgo(getTimeAgo(item.getCreatedAt()));
-
+                    postDTO.setAvatar(item.getAuthor().getProfilePicture());
                     Long[] saves = savedRepository.findAllByPost(item.getId());
                     if(saves != null) {
                         postDTO.setSavedByUser(saves);
@@ -203,36 +203,10 @@ public class PostService implements IPostService {
     @Override
     @Transactional
     public void deletePostById(Long postId) {
-        // Validate
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy bài viết"));
-
-        List<Comment> childComments = commentRepository.findChildCommentsByPostId(postId);
-        if (!childComments.isEmpty()) {
-            for (Comment comment : childComments) {
-                likeRepository.deleteByComment(comment.getId());
-            }
-        }
-        if (!childComments.isEmpty()) {
-            for (Comment comment : childComments) {
-                commentRepository.deleteChildComments(comment.getId());
-            }
-        }
-
-        List<Comment> parentComments = commentRepository.findParentCommentsByPostId(postId);
-        for (Comment comment : parentComments) {
-            likeRepository.deleteByComment(comment.getId());
-        }
-        if (!parentComments.isEmpty()) {
-            for (Comment comment : parentComments) {
-                commentRepository.deleteParentCommentsByPostId(comment.getPost().getId());
-            }
-        }
-
-        // Xóa likes nếu có
-        List<Like> likes = likeRepository.findByPost(post);
-        if (!likes.isEmpty()) {
-            likeRepository.deleteAll(likes);
+        for(Like like : post.getLikes()){
+            likeRepository.delete(like);
         }
         postRepository.delete(post);
     }
