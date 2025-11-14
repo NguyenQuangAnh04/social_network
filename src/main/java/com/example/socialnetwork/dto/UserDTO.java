@@ -4,10 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Data
-public class UserDTO {
+public class UserDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     @NotBlank(message = "Vui lòng nhập tài khoản")
     @Size(min = 3, max = 8, message = "Tài khoản phải từ 3 đến 8 kí tự")

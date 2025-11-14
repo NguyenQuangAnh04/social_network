@@ -14,6 +14,8 @@ import com.example.socialnetwork.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -121,6 +123,7 @@ public class UserService implements IUserService {
     }
 
     @Override
+    @Cacheable(value = "user", key = "#username")
     public UserDTO findByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Not found with username" + username));
@@ -138,6 +141,7 @@ public class UserService implements IUserService {
 
 
     @Override
+    @Cacheable(value = "user_search", key = "#fullname")
     public List<UserDTO> findByName(String fullname) {
         List<User> user = userRepository.findByName(fullname);
         return user.stream().filter(item -> item.getFullName() != null).map(item -> {
